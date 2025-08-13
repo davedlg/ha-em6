@@ -1,5 +1,5 @@
 """em6 sensors"""
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import logging
 import voluptuous as vol
@@ -8,6 +8,8 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import CONF_LOCATION
 from homeassistant.helpers.entity import Entity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
@@ -20,7 +22,8 @@ from .const import (
 )
 
 NAME = DOMAIN
-ISSUEURL = "https://github.com/codyc1515/hacs_em6/issues"
+# Repository issue tracker for this integration
+ISSUEURL = "https://github.com/codyc1515/ha-em6/issues"
 
 STARTUP = f"""
 -------------------------------------------------------------------
@@ -48,8 +51,16 @@ async def async_setup_platform(hass, config, async_add_entities,
     _LOGGER.debug('Setting up sensor(s)...')
 
     sensors = []
-    sensors .append(em6EnergyPriceSensor(SENSOR_NAME, api))
+    sensors.append(em6EnergyPriceSensor(SENSOR_NAME, api))
     async_add_entities(sensors, True)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+):
+    """Set up em6 sensor from a config entry."""
+    api = em6Api(entry.data[CONF_LOCATION])
+    async_add_entities([em6EnergyPriceSensor(SENSOR_NAME, api)], True)
 
 class em6EnergyPriceSensor(Entity):
     def __init__(self, name, api):
@@ -97,14 +108,14 @@ class em6EnergyPriceSensor(Entity):
         """Return the unique id."""
         return self._unique_id
 
-    def update(self):
+    async def async_update(self):
         _LOGGER.debug('Fetching prices')
-        response = self._api.get_prices()
-        
+        response = await self._api.async_get_prices()
+
         if response:
             _LOGGER.debug('Found price')
             _LOGGER.debug(response)
-            
+
             # Avoid updating the price (state) if the price is still the same or we will get duplicate notifications
             if self._state != response['price'] / 1000:
                 self._state = response['price'] / 1000
