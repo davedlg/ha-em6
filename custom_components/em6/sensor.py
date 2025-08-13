@@ -20,7 +20,8 @@ from .const import (
 )
 
 NAME = DOMAIN
-ISSUEURL = "https://github.com/codyc1515/hacs_em6/issues"
+# Repository issue tracker for this integration
+ISSUEURL = "https://github.com/codyc1515/ha-em6/issues"
 
 STARTUP = f"""
 -------------------------------------------------------------------
