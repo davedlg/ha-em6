@@ -108,14 +108,14 @@ class em6EnergyPriceSensor(Entity):
         """Return the unique id."""
         return self._unique_id
 
-    def update(self):
+    async def async_update(self):
         _LOGGER.debug('Fetching prices')
-        response = self._api.get_prices()
-        
+        response = await self._api.async_get_prices()
+
         if response:
             _LOGGER.debug('Found price')
             _LOGGER.debug(response)
-            
+
             # Avoid updating the price (state) if the price is still the same or we will get duplicate notifications
             if self._state != response['price'] / 1000:
                 self._state = response['price'] / 1000

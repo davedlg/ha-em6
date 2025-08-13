@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import List, Optional
 
-import requests
+import aiohttp
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,7 +21,7 @@ class em6Api:
         self._location = location
 
     @staticmethod
-    def _get_region_prices() -> Optional[dict]:
+    async def _async_get_region_prices() -> Optional[dict]:
         headers = {
             "user-agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -29,29 +30,31 @@ class em6Api:
             )
         }
         try:
-            response = requests.get(em6Api._URL_BASE + "region/price", headers=headers, timeout=10)
-        except requests.RequestException as err:  # pragma: no cover - network error
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(em6Api._URL_BASE + "region/price", headers=headers) as response:
+                    if response.status != 200:
+                        _LOGGER.error("Failed to fetch data: status %s", response.status)
+                        return None
+                    return await response.json()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:  # pragma: no cover - network error
             _LOGGER.error("Failed to fetch data: %s", err)
             return None
-        if response.status_code != requests.codes.ok:
-            _LOGGER.error("Failed to fetch data: status %s", response.status_code)
-            return None
-        return response.json()
 
     @classmethod
-    def get_locations(cls) -> List[str]:
+    async def async_get_locations(cls) -> List[str]:
         """Return a list of available grid zone names."""
-        data = cls._get_region_prices()
+        data = await cls._async_get_region_prices()
         if not data or "items" not in data:
             return []
         return [item["grid_zone_name"] for item in data["items"]]
 
-    def get_prices(self) -> Optional[dict]:
+    async def async_get_prices(self) -> Optional[dict]:
         """Fetch the current price for the configured location."""
         if not self._location:
             _LOGGER.error("Location not set for price lookup")
             return None
-        data = self._get_region_prices()
+        data = await self._async_get_region_prices()
         if not data:
             return None
         for item in data.get("items", []):

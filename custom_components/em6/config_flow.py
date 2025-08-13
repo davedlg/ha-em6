@@ -24,7 +24,7 @@ class em6ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_create_entry(title=user_input[CONF_LOCATION], data=user_input)
 
         api = em6Api()
-        locations = await self.hass.async_add_executor_job(api.get_locations)
+        locations = await api.async_get_locations()
         if not locations:
             errors["base"] = "cannot_connect"
             locations = []
