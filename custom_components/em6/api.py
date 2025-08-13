@@ -8,7 +8,6 @@ from typing import List, Optional
 
 import aiohttp
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -62,4 +61,3 @@ class em6Api:
                 return item
         _LOGGER.warning("Location %s not found in API response", self._location)
         return None
-
