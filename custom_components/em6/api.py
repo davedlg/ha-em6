@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import List, Optional
+import datetime
 
 import aiohttp
 
@@ -81,4 +82,19 @@ class em6Api:
             if item["grid_zone_name"] == self._location:
                 return item
         _LOGGER.warning("Location %s not found in API response", self._location)
+        return None
+
+    async def async_get_carbon(self) -> Optional[dict]:
+        """Fetch the current carbon data"""
+        data = await self._async_get_carbon_intensity()
+        if not data:
+            return None
+        latest_item = None
+        latest_time = None
+        for item in data.get("items", []):
+            ts = datetime.datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00"))
+            if latest_time is None or ts > latest_time:
+                latest_time = ts
+                latest_item = item
+            return latest_item
         return None
