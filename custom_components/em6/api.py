@@ -39,6 +39,27 @@ class em6Api:
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:  # pragma: no cover - network error
             _LOGGER.error("Failed to fetch data: %s", err)
             return None
+    @staticmethod
+    async def _async_get_carbon_intensity() -> Optional[dict]:
+        headers = {
+            "user-agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/111.0.0.0 Safari/537.36 Edg/111.0.1661.54"
+            )
+        }
+        try:
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(em6Api._URL_BASE + "current_carbon_intensity", headers=headers) as response:
+                    if response.status != 200:
+                        _LOGGER.error("Failed to fetch data: status %s", response.status)
+                        return None
+                    return await response.json()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:  # pragma: no cover - network error
+            _LOGGER.error("Failed to fetch data: %s", err)
+            return None
+
 
     @classmethod
     async def async_get_locations(cls) -> List[str]:
