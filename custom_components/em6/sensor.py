@@ -116,7 +116,7 @@ class em6CarbonSensor(Entity):
 
     async def async_update(self):
         _LOGGER.debug('Fetching carbon data')
-        response = await self._api.async_get_carbon(self)
+        response = await self._api.async_get_carbon()
 
         if response:
             _LOGGER.debug('Found carbon data')
@@ -178,7 +178,7 @@ class em6RenewablesSensor(Entity):
 
     async def async_update(self):
         _LOGGER.debug('Fetching carbon data')
-        response = await self._api.async_get_carbon(self)
+        response = await self._api.async_get_carbon()
 
         if response:
             _LOGGER.debug('Found carbon data')
