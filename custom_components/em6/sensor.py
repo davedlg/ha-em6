@@ -18,7 +18,9 @@ from .api import em6Api
 
 from .const import (
     DOMAIN,
-    SENSOR_NAME
+    PRICE_SENSOR_NAME,
+    CARBON_SENSOR_NAME,
+    RENEWABLES_SENSOR_NAME
 )
 
 NAME = DOMAIN
@@ -51,7 +53,9 @@ async def async_setup_platform(hass, config, async_add_entities,
     _LOGGER.debug('Setting up sensor(s)...')
 
     sensors = []
-    sensors.append(em6EnergyPriceSensor(SENSOR_NAME, api))
+    sensors.append(em6EnergyPriceSensor(PRICE_SENSOR_NAME, api))
+    sensors.append(em6CarbonSensor(CARBON_SENSOR_NAME, api))
+    sensors.append(em6RenewablesSensor(RENEWABLES_SENSOR_NAME, api))
     async_add_entities(sensors, True)
 
 
@@ -60,8 +64,72 @@ async def async_setup_entry(
 ):
     """Set up em6 sensor from a config entry."""
     api = em6Api(entry.data[CONF_LOCATION])
-    async_add_entities([em6EnergyPriceSensor(SENSOR_NAME, api)], True)
+    async_add_entities([em6EnergyPriceSensor(PRICE_SENSOR_NAME, api)], True)
+    async_add_entities([em6CarbonSensor(CARBON_SENSOR_NAME, api)], True)
+    async_add_entities([em6RenewablesSensor(RENEWABLES_SENSOR_NAME, api)], True)
 
+class em6CarbonSensor(Entity):
+    def __init__(self, name, api):
+        self._name = name
+        self._icon = "mdi:chart-bar"
+        self._state = None
+        self._state_attributes = {}
+        self._state_class = "measurement"
+        self._unit_of_measurement = 'gkWh'
+        self._unique_id = DOMAIN
+        self._api = api
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._name
+
+    @property
+    def icon(self):
+        """Icon to use in the frontend, if any."""
+        return self._icon
+
+    @property
+    def state(self):
+        """Return the state of the device."""
+        return self._state
+
+    @property
+    def state_class(self):
+        """Return the state class of the device."""
+        return self._state_class
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes of the sensor."""
+        return self._state_attributes
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement."""
+        return self._unit_of_measurement
+
+    @property
+    def unique_id(self):
+        """Return the unique id."""
+        return self._unique_id
+
+    async def async_update(self):
+        _LOGGER.debug('Fetching carbon data')
+        response = await self._api.async_get_carbon(self)
+
+        if response:
+            _LOGGER.debug('Found carbon data')
+            _LOGGER.debug(response)
+
+            # Avoid updating the data (state) if the price is still the same or we will get duplicate notifications
+            if self._state != response['nz_carbon_gkwh']:
+                self._state = response['nz_carbon_gkwh']
+                self._state_attributes['Last Updated'] = response['timestamp']
+        else:
+            self._state = None
+            _LOGGER.warning('Found no carbon data on refresh')
+            
 class em6EnergyPriceSensor(Entity):
     def __init__(self, name, api):
         self._name = name
@@ -125,3 +193,4 @@ class em6EnergyPriceSensor(Entity):
         else:
             self._state = None
             _LOGGER.warning('Found no prices on refresh')
+
